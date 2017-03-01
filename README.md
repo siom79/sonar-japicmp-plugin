@@ -8,7 +8,7 @@ plugin of [japicmp](https://siom79.github.io/japicmp/).
 The plugin requires the [sonar-java-plugin](https://docs.sonarqube.org/display/PLUG/SonarJava) in version >= 4.x and 
 Sonar Qube in version >= 5.6.x (LTS).
 
-How to install the plugin manually (as it currently not available through the Update Center) is described 
+How to install the plugin manually (as it is currently not available through the Update Center) is described 
 [here](https://docs.sonarqube.org/display/SONAR/Installing+a+Plugin).
 
 The default location of the report is `target/japicmp/japicmp.xml`. You can specify a different location (if you have 
