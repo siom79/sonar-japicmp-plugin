@@ -6,7 +6,7 @@ plugin of [japicmp](https://siom79.github.io/japicmp/).
 ## Usage
 
 The plugin requires the [sonar-java-plugin](https://docs.sonarqube.org/display/PLUG/SonarJava) in version >= 4.x and 
-Sonar Qube in version >= 5.6.x (LTS).
+Sonar Qube in version >= 5.6.x (LTS). Tested also with 6.2.
 
 How to install the plugin manually (as it is currently not available through the Update Center) is described 
 [here](https://docs.sonarqube.org/display/SONAR/Installing+a+Plugin).

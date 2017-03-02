@@ -1,20 +1,13 @@
 package japicmp.sonar;
 
+import japicmp.xml.*;
 import japicmp.xml.JApiBehavior.Parameters;
-import japicmp.xml.JApiClass;
 import japicmp.xml.JApiClass.CompatibilityChanges;
 import japicmp.xml.JApiClass.Constructors;
 import japicmp.xml.JApiClass.Fields;
 import japicmp.xml.JApiClass.Interfaces;
 import japicmp.xml.JApiClass.Methods;
 import japicmp.xml.JApiCmpXmlRoot.Classes;
-import japicmp.xml.JApiCompatibilityChange;
-import japicmp.xml.JApiConstructor;
-import japicmp.xml.JApiField;
-import japicmp.xml.JApiImplementedInterface;
-import japicmp.xml.JApiMethod;
-import japicmp.xml.JApiParameter;
-import japicmp.xml.JApiSuperclass;
 
 import java.io.File;
 import java.util.List;
@@ -80,7 +73,11 @@ public class JApiCmpSensor implements Sensor {
 			CompatibilityChanges compatibilityChangesClass = jApiClass.getCompatibilityChanges();
 			if (compatibilityChangesClass != null) {
 				String desc = jApiClass.getFullyQualifiedName();
-				processCompatibilityChange(context, jApiClass, compatibilityChangesClass.getCompatibilityChange(), -1, desc);
+				List<JApiCompatibilityChange> changes = compatibilityChangesClass.getCompatibilityChange();
+				processCompatibilityChange(context, jApiClass, changes, -1, desc);
+			}
+			if (jApiClass.getChangeStatus() == JApiChangeStatus.REMOVED) {
+				continue; //do not process removed classes further, otherwise a lot of further issues are created
 			}
 			processMethods(context, jApiClass);
 			processConstructors(context, jApiClass);
@@ -220,11 +217,11 @@ public class JApiCmpSensor implements Sensor {
 					jApiCompatibilityChange = japicmp.model.JApiCompatibilityChange.valueOf(change.name());
 					if (!jApiCompatibilityChange.isBinaryCompatible()) {
 						RuleKey rule = JApiCmpRulesDefinition.RULE_BINARY_INCOMPATBILE_CHANGE;
-						createNewIssue(context, jApiClass, module, jApiCompatibilityChange, rule, lineNumber, desc);
+						createNewIssue(context, jApiClass, module, jApiCompatibilityChange, rule, lineNumber, "(" + desc + ") [binary incompatible]");
 					}
 					if (!jApiCompatibilityChange.isSourceCompatible()) {
 						RuleKey rule = JApiCmpRulesDefinition.RULE_SOURCE_INCOMPATBILE_CHANGE;
-						createNewIssue(context, jApiClass, module, jApiCompatibilityChange, rule, lineNumber, desc);
+						createNewIssue(context, jApiClass, module, jApiCompatibilityChange, rule, lineNumber, "(" + desc + ") [source incompatible]");
 					}
 				} catch (Exception e) {
 					LOGGER.warn("Could not convert compatibility change " + change.name() + " into enum value: " + e.getLocalizedMessage(), e);
@@ -233,7 +230,8 @@ public class JApiCmpSensor implements Sensor {
 		}
 	}
 
-	private void createNewIssue(SensorContext context, JApiClass jApiClass, InputModule module, japicmp.model.JApiCompatibilityChange jApiCompatibilityChange, RuleKey rule, int lineNumber, String desc) {
+	private void createNewIssue(SensorContext context, JApiClass jApiClass, InputModule module, japicmp.model.JApiCompatibilityChange jApiCompatibilityChange,
+								RuleKey rule, int lineNumber, String desc) {
 		InputFile inputFile = this.javaResourceLocator.findResourceByClassName(jApiClass.getFullyQualifiedName());
 		NewIssue newIssue = context.newIssue().forRule(rule);
 		NewIssueLocation primaryLocation;
@@ -245,7 +243,7 @@ public class JApiCmpSensor implements Sensor {
 		} else {
 			primaryLocation = newIssue.newLocation().on(module);
 		}
-		String message = jApiCompatibilityChange.name() + " (" + desc + ")";
+		String message = jApiCompatibilityChange.name() + " " + desc;
 		primaryLocation.message(message);
 		newIssue.at(primaryLocation);
 		newIssue.save();
