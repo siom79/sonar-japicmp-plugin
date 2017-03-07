@@ -4,9 +4,11 @@ import org.sonar.api.CoreProperties;
 import org.sonar.api.Plugin;
 import org.sonar.api.config.PropertyDefinition;
 
+import static japicmp.sonar.JApiCmpSonarConstants.DEFAULT_VALUE_REPORT_PATH;
+
 public class JApiCmpSonarPlugin implements Plugin {
 
-	@Override
+    @Override
 	public void define(Context context) {
 		context.addExtension(JApiCmpRulesDefinition.class);
 		context.addExtension(JApiCmpSensor.class);
@@ -15,7 +17,7 @@ public class JApiCmpSonarPlugin implements Plugin {
 				.subCategory("JApiCmp")
 				.name("Report path")
 				.description("Path (absolute or relative) to japicmp xml report file.")
-				.defaultValue("target/japicmp/japicmp.xml")
+				.defaultValue(DEFAULT_VALUE_REPORT_PATH)
 				.build());
 	}
 }
