@@ -46,7 +46,7 @@ import org.sonar.plugins.java.api.JavaResourceLocator;
 public class JApiCmpSensor implements Sensor {
 	private static final Logger LOGGER = Loggers.get(JApiCmpSensor.class);
 	private final PathResolver pathResolver;
-	private JavaResourceLocator javaResourceLocator;
+	private final JavaResourceLocator javaResourceLocator;
 
 	public JApiCmpSensor(PathResolver pathResolver, JavaResourceLocator javaResourceLocator) {
 		this.pathResolver = pathResolver;
@@ -55,7 +55,7 @@ public class JApiCmpSensor implements Sensor {
 
 	@Override
 	public void describe(SensorDescriptor descriptor) {
-		descriptor.name(JApiCmpSensor.class.getName());
+		descriptor.name(JApiCmpSensor.class.getSimpleName());
 	}
 
 	@Override
@@ -118,7 +118,7 @@ public class JApiCmpSensor implements Sensor {
         return semanticVersion;
     }
 
-    private void processClasses(SensorContext context, List<JApiClass> clazzes, Optional<SemanticVersion.ChangeType> changeType) {
+    void processClasses(SensorContext context, List<JApiClass> clazzes, Optional<SemanticVersion.ChangeType> changeType) {
 		for (JApiClass jApiClass : clazzes) {
 			if (LOGGER.isDebugEnabled()) {
 				LOGGER.debug("Processing class: " + jApiClass.getFullyQualifiedName());
@@ -132,6 +132,12 @@ public class JApiCmpSensor implements Sensor {
 			if (jApiClass.getChangeStatus() == JApiChangeStatus.REMOVED) {
 				continue; //do not process removed classes further, otherwise a lot of further issues are created
 			}
+            if (jApiClass.getChangeStatus() == JApiChangeStatus.NEW) {
+                if (createIssueForCompatibleChange(changeType, context)) {
+                    createNewIssue(context, jApiClass, JApiCmpRulesDefinition.RULE_API_CHANGE, -1, jApiClass.getChangeStatus().name() + ": " + jApiClass.getFullyQualifiedName());
+                }
+                continue; //do not process removed classes further, otherwise a lot of further issues are created
+            }
 			processMethods(context, jApiClass, changeType);
 			processConstructors(context, jApiClass, changeType);
 			processFields(context, jApiClass, changeType);
@@ -144,11 +150,17 @@ public class JApiCmpSensor implements Sensor {
 		Interfaces interfaces = jApiClass.getInterfaces();
 		if (interfaces != null) {
 			for (JApiImplementedInterface jApiImplementedInterface : interfaces.getInterface()) {
-				japicmp.xml.JApiImplementedInterface.CompatibilityChanges compatibilityChangesInterface = jApiImplementedInterface.getCompatibilityChanges();
-				if (compatibilityChangesInterface != null) {
-					String desc = "Interface " + jApiImplementedInterface.getFullyQualifiedName() + " of " + jApiClass.getFullyQualifiedName();
+                String desc = "Interface " + jApiImplementedInterface.getFullyQualifiedName() + " of " + jApiClass.getFullyQualifiedName();
+                japicmp.xml.JApiImplementedInterface.CompatibilityChanges compatibilityChangesInterface = jApiImplementedInterface.getCompatibilityChanges();
+                if (compatibilityChangesInterface != null && compatibilityChangesInterface.getCompatibilityChange() != null
+                        && !compatibilityChangesInterface.getCompatibilityChange().isEmpty()) {
 					processCompatibilityChange(context, jApiClass, compatibilityChangesInterface.getCompatibilityChange(), -1, desc, changeType);
-				}
+				} else {
+                    JApiChangeStatus changeStatus = jApiImplementedInterface.getChangeStatus();
+                    if (changeStatus != JApiChangeStatus.UNCHANGED && createIssueForCompatibleChange(changeType, context)) {
+                        createNewIssue(context, jApiClass, JApiCmpRulesDefinition.RULE_API_CHANGE, -1, changeStatus.name() + ": " + desc);
+                    }
+                }
 			}
 		}
 	}
@@ -156,11 +168,17 @@ public class JApiCmpSensor implements Sensor {
 	private void processSuperclass(SensorContext context, JApiClass jApiClass, Optional<SemanticVersion.ChangeType> changeType) {
 		JApiSuperclass superclass = jApiClass.getSuperclass();
 		if (superclass != null) {
-			japicmp.xml.JApiSuperclass.CompatibilityChanges compatibilityChangesSuperclass = superclass.getCompatibilityChanges();
-			if (compatibilityChangesSuperclass != null) {
-				String desc = "Superclass of " + jApiClass.getFullyQualifiedName();
+            String desc = "Superclass of " + jApiClass.getFullyQualifiedName();
+            japicmp.xml.JApiSuperclass.CompatibilityChanges compatibilityChangesSuperclass = superclass.getCompatibilityChanges();
+            if (compatibilityChangesSuperclass != null && compatibilityChangesSuperclass.getCompatibilityChange() != null
+                    && !compatibilityChangesSuperclass.getCompatibilityChange().isEmpty()) {
 				processCompatibilityChange(context, jApiClass, compatibilityChangesSuperclass.getCompatibilityChange(), -1, desc, changeType);
-			}
+			} else {
+                JApiChangeStatus changeStatus = superclass.getChangeStatus();
+                if (changeStatus != JApiChangeStatus.UNCHANGED && createIssueForCompatibleChange(changeType, context)) {
+                    createNewIssue(context, jApiClass, JApiCmpRulesDefinition.RULE_API_CHANGE, -1, changeStatus.name() + ": " + desc);
+                }
+            }
 		}
 	}
 
@@ -168,11 +186,17 @@ public class JApiCmpSensor implements Sensor {
 		Fields fields = jApiClass.getFields();
 		if (fields != null) {
 			for (JApiField jApiField : fields.getField()) {
-				japicmp.xml.JApiField.CompatibilityChanges compatibilityChangesField = jApiField.getCompatibilityChanges();
-				if (compatibilityChangesField != null) {
-					String desc = jApiClass.getFullyQualifiedName() + "#" + jApiField.getName();
+                String desc = jApiClass.getFullyQualifiedName() + "#" + jApiField.getName();
+                japicmp.xml.JApiField.CompatibilityChanges compatibilityChangesField = jApiField.getCompatibilityChanges();
+                if (compatibilityChangesField != null && compatibilityChangesField.getCompatibilityChange() != null
+                        && !compatibilityChangesField.getCompatibilityChange().isEmpty()) {
 					processCompatibilityChange(context, jApiClass, compatibilityChangesField.getCompatibilityChange(), -1, desc, changeType);
-				}
+				} else {
+                    JApiChangeStatus changeStatus = jApiField.getChangeStatus();
+                    if (changeStatus != JApiChangeStatus.UNCHANGED && createIssueForCompatibleChange(changeType, context)) {
+                        createNewIssue(context, jApiClass, JApiCmpRulesDefinition.RULE_API_CHANGE, -1, changeStatus.name() + ": " + desc);
+                    }
+                }
 			}
 		}
 	}
@@ -181,11 +205,17 @@ public class JApiCmpSensor implements Sensor {
 		Constructors constructors = jApiClass.getConstructors();
 		if (constructors != null) {
 			for (JApiConstructor jApiConstructor : constructors.getConstructor()) {
-				japicmp.xml.JApiBehavior.CompatibilityChanges compatibilityChangesConstructor = jApiConstructor.getCompatibilityChanges();
-				if (compatibilityChangesConstructor != null) {
-					String descriptor = createConstructorDescriptor(jApiClass, jApiConstructor);
+                String descriptor = createConstructorDescriptor(jApiClass, jApiConstructor);
+                japicmp.xml.JApiBehavior.CompatibilityChanges compatibilityChangesConstructor = jApiConstructor.getCompatibilityChanges();
+                if (compatibilityChangesConstructor != null && compatibilityChangesConstructor.getCompatibilityChange() != null
+                        && !compatibilityChangesConstructor.getCompatibilityChange().isEmpty()) {
 					processCompatibilityChange(context, jApiClass, compatibilityChangesConstructor.getCompatibilityChange(), toInt(jApiConstructor.getNewLineNumber()), descriptor, changeType);
-				}
+				} else {
+                    JApiChangeStatus changeStatus = jApiConstructor.getChangeStatus();
+                    if (changeStatus != JApiChangeStatus.UNCHANGED && createIssueForCompatibleChange(changeType, context)) {
+                        createNewIssue(context, jApiClass, JApiCmpRulesDefinition.RULE_API_CHANGE, toInt(jApiConstructor.getNewLineNumber()), changeStatus.name() + ": " + descriptor);
+                    }
+                }
 			}
 		}
 	}
@@ -194,11 +224,17 @@ public class JApiCmpSensor implements Sensor {
 		Methods methods = jApiClass.getMethods();
 		if (methods != null) {
 			for (JApiMethod jApiMethod : methods.getMethod()) {
-				japicmp.xml.JApiBehavior.CompatibilityChanges compatibilityChangesMethod = jApiMethod.getCompatibilityChanges();
-				if (compatibilityChangesMethod != null) {
-					String methodDescriptor = createMethodDescriptor(jApiClass, jApiMethod);
+                String methodDescriptor = createMethodDescriptor(jApiClass, jApiMethod);
+                japicmp.xml.JApiBehavior.CompatibilityChanges compatibilityChangesMethod = jApiMethod.getCompatibilityChanges();
+                if (compatibilityChangesMethod != null && compatibilityChangesMethod.getCompatibilityChange() != null
+                        && !compatibilityChangesMethod.getCompatibilityChange().isEmpty()) {
 					processCompatibilityChange(context, jApiClass, compatibilityChangesMethod.getCompatibilityChange(), toInt(jApiMethod.getNewLineNumber()), methodDescriptor, changeType);
-				}
+				} else {
+                    JApiChangeStatus changeStatus = jApiMethod.getChangeStatus();
+                    if (changeStatus != JApiChangeStatus.UNCHANGED && createIssueForCompatibleChange(changeType, context)) {
+                        createNewIssue(context, jApiClass, JApiCmpRulesDefinition.RULE_API_CHANGE, toInt(jApiMethod.getNewLineNumber()), changeStatus.name() + ": " + methodDescriptor);
+                    }
+                }
 			}
 		}
 	}
@@ -262,13 +298,12 @@ public class JApiCmpSensor implements Sensor {
 				japicmp.model.JApiCompatibilityChange jApiCompatibilityChange;
 				try {
 					jApiCompatibilityChange = japicmp.model.JApiCompatibilityChange.valueOf(change.name());
-					if (!jApiCompatibilityChange.isBinaryCompatible() && createIssueForBinaryIncompatibleChange(changeType)) {
+					if (!jApiCompatibilityChange.isBinaryCompatible() && createIssueForBinaryIncompatibleChange(changeType, context)) {
 						RuleKey rule = JApiCmpRulesDefinition.RULE_BINARY_INCOMPATBILE_CHANGE;
-						createNewIssue(context, jApiClass, jApiCompatibilityChange, rule, lineNumber, "(" + desc + ") [binary incompatible]");
-					}
-					if (!jApiCompatibilityChange.isSourceCompatible() && createIssueForSourceIncompatibleChange(changeType)) {
+						createNewIssue(context, jApiClass, rule, lineNumber, jApiCompatibilityChange.name() + " (" + desc + ") [binary incompatible]");
+					} else if (!jApiCompatibilityChange.isSourceCompatible() && createIssueForSourceIncompatibleChange(changeType, context)) {
 						RuleKey rule = JApiCmpRulesDefinition.RULE_SOURCE_INCOMPATBILE_CHANGE;
-						createNewIssue(context, jApiClass, jApiCompatibilityChange, rule, lineNumber, "(" + desc + ") [source incompatible]");
+						createNewIssue(context, jApiClass, rule, lineNumber, jApiCompatibilityChange.name() + " (" + desc + ") [source incompatible]");
 					}
 				} catch (Exception e) {
 					LOGGER.warn("Could not convert compatibility change " + change.name() + " into enum value: " + e.getLocalizedMessage(), e);
@@ -277,9 +312,11 @@ public class JApiCmpSensor implements Sensor {
 		}
 	}
 
-    private boolean createIssueForBinaryIncompatibleChange(Optional<SemanticVersion.ChangeType> changeTypeOptional) {
-        boolean createIssue = false;
-        if (changeTypeOptional.isPresent()) {
+    private boolean createIssueForBinaryIncompatibleChange(Optional<SemanticVersion.ChangeType> changeTypeOptional, SensorContext context) {
+        boolean createIssue = true; // create per default an issue
+        boolean useSemanticVersioning = getUseSemanticVersioning(context);
+        if (changeTypeOptional.isPresent() && useSemanticVersioning) {
+            createIssue = false;
             SemanticVersion.ChangeType changeType = changeTypeOptional.get();
             if (changeType == SemanticVersion.ChangeType.PATCH || changeType == SemanticVersion.ChangeType.MINOR) {
                 createIssue = true;
@@ -288,9 +325,22 @@ public class JApiCmpSensor implements Sensor {
         return createIssue;
     }
 
-    private boolean createIssueForSourceIncompatibleChange(Optional<SemanticVersion.ChangeType> changeTypeOptional) {
-        boolean createIssue = false;
-        if (changeTypeOptional.isPresent()) {
+    private boolean getUseSemanticVersioning(SensorContext context) {
+        boolean useSemanticVersioning;
+        String useSemanticVersioningSetting = context.settings().getString(JApiCmpSonarConstants.PROPERTY_USE_SEMANTIC_VERSIONING);
+        if (useSemanticVersioningSetting != null) {
+            useSemanticVersioning = "true".equalsIgnoreCase(useSemanticVersioningSetting);
+        } else {
+            useSemanticVersioning = true; // default value
+        }
+        return useSemanticVersioning;
+    }
+
+    private boolean createIssueForSourceIncompatibleChange(Optional<SemanticVersion.ChangeType> changeTypeOptional, SensorContext context) {
+        boolean createIssue = true; // create per default an issue
+        boolean useSemanticVersioning = getUseSemanticVersioning(context);
+        if (changeTypeOptional.isPresent() && useSemanticVersioning) {
+            createIssue = false;
             SemanticVersion.ChangeType changeType = changeTypeOptional.get();
             if (changeType == SemanticVersion.ChangeType.PATCH || changeType == SemanticVersion.ChangeType.MINOR) {
                 createIssue = true;
@@ -299,8 +349,20 @@ public class JApiCmpSensor implements Sensor {
         return createIssue;
     }
 
-	private void createNewIssue(SensorContext context, JApiClass jApiClass, japicmp.model.JApiCompatibilityChange jApiCompatibilityChange,
-                                RuleKey rule, int lineNumber, String desc) {
+    private boolean createIssueForCompatibleChange(Optional<SemanticVersion.ChangeType> changeTypeOptional, SensorContext context) {
+        boolean createIssue = true; // create per default an issue
+        boolean useSemanticVersioning = getUseSemanticVersioning(context);
+        if (changeTypeOptional.isPresent() && useSemanticVersioning) {
+            createIssue = false;
+            SemanticVersion.ChangeType changeType = changeTypeOptional.get();
+            if (changeType == SemanticVersion.ChangeType.PATCH) {
+                createIssue = true;
+            }
+        }
+        return createIssue;
+    }
+
+	private void createNewIssue(SensorContext context, JApiClass jApiClass, RuleKey rule, int lineNumber, String message) {
 		InputFile inputFile = this.javaResourceLocator.findResourceByClassName(jApiClass.getFullyQualifiedName());
 		NewIssue newIssue = context.newIssue().forRule(rule);
 		NewIssueLocation primaryLocation;
@@ -313,7 +375,6 @@ public class JApiCmpSensor implements Sensor {
             InputModule inputModule = context.module();
             primaryLocation = newIssue.newLocation().on(inputModule);
 		}
-		String message = jApiCompatibilityChange.name() + " " + desc;
 		primaryLocation.message(message);
 		newIssue.at(primaryLocation);
 		newIssue.save();
