@@ -23,4 +23,4 @@ of the plugin is distributed with which version of japicmp.
 
 sonar-japicmp-plugin version|Embedded japicmp version
 ---|---
-[0.1.0](https://github.com/siom79/sonar-japicmp-plugin/releases/tag/sonar-japicmp-plugin-0.1.0)|0.11.0
+[0.1.0-RC1](https://github.com/siom79/sonar-japicmp-plugin/releases/tag/sonar-japicmp-plugin-0.1.0-RC1)|0.11.0
