@@ -45,6 +45,7 @@
           </xs:sequence>
         </xs:complexType>
       </xs:element>
+      <xs:element name="classFileFormatVersion" type="jApiClassFileFormatVersion" minOccurs="0"/>
       <xs:element name="classType" type="jApiClassType" minOccurs="0"/>
       <xs:element name="compatibilityChanges" minOccurs="0">
         <xs:complexType>
@@ -127,7 +128,7 @@
       <xs:element name="compatibilityChanges" minOccurs="0">
         <xs:complexType>
           <xs:sequence>
-            <xs:element name="compatibilityChange" type="xs:anyType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="compatibilityChange" type="jApiCompatibilityChange" minOccurs="0" maxOccurs="unbounded"/>
           </xs:sequence>
         </xs:complexType>
       </xs:element>
@@ -173,6 +174,15 @@
     <xs:attribute name="changeStatus" type="jApiChangeStatus"/>
     <xs:attribute name="newValue" type="xs:string"/>
     <xs:attribute name="oldValue" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="jApiClassFileFormatVersion">
+    <xs:sequence/>
+    <xs:attribute name="changeStatus" type="jApiChangeStatus"/>
+    <xs:attribute name="majorVersionNew" type="xs:int" use="required"/>
+    <xs:attribute name="majorVersionOld" type="xs:int" use="required"/>
+    <xs:attribute name="minorVersionNew" type="xs:int" use="required"/>
+    <xs:attribute name="minorVersionOld" type="xs:int" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="jApiClassType">
@@ -422,7 +432,7 @@
       <xs:enumeration value="NOT_SERIALIZABLE"/>
       <xs:enumeration value="SERIALIZABLE_COMPATIBLE"/>
       <xs:enumeration value="SERIALIZABLE_INCOMPATIBLE_SERIALVERSIONUID_MODIFIED"/>
-      <xs:enumeration value="SERIALIZABLE_INCOMPATIBLE_SERIALVERSIONUID_REMOVED_AND_NOT_MACHTES_NEW_DEFAULT"/>
+      <xs:enumeration value="SERIALIZABLE_INCOMPATIBLE_SERIALVERSIONUID_REMOVED_AND_NOT_MATCHES_NEW_DEFAULT"/>
       <xs:enumeration value="SERIALIZABLE_INCOMPATIBLE_SERIALVERSIONUID_ADDED_AND_NOT_MATCHES_OLD_DEFAULT"/>
       <xs:enumeration value="SERIALIZABLE_INCOMPATIBLE_CLASS_TYPE_MODIFIED"/>
       <xs:enumeration value="SERIALIZABLE_INCOMPATIBLE_CHANGED_FROM_SERIALIZABLE_TO_EXTERNALIZABLE"/>

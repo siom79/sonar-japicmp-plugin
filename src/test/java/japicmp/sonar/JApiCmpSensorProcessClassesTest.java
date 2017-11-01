@@ -1,6 +1,6 @@
 package japicmp.sonar;
 
-import com.google.common.base.Optional;
+import japicmp.util.Optional;
 import japicmp.versioning.SemanticVersion;
 import japicmp.xml.*;
 import org.junit.Before;

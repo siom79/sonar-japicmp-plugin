@@ -16,6 +16,8 @@
 		<sonar.apiVersion>5.6</sonar.apiVersion>
 		<jdk.min.version>1.8</jdk.min.version>
 		<sonar-java.version>4.1</sonar-java.version>
+        <japicmp.version>0.11.0</japicmp.version>
+        <commons-lang.version>2.6</commons-lang.version>
 	</properties>
 
 	<dependencies>
@@ -35,12 +37,12 @@
 		<dependency>
 			<groupId>commons-lang</groupId>
 			<artifactId>commons-lang</artifactId>
-			<version>2.6</version>
+			<version>${commons-lang.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.siom79.japicmp</groupId>
 			<artifactId>japicmp</artifactId>
-			<version>0.9.5-SNAPSHOT</version>
+			<version>${japicmp.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.sonarsource.sonarqube</groupId>
