@@ -12,9 +12,15 @@ How to install the plugin manually (as it is currently not available through the
 [here](https://docs.sonarqube.org/display/SONAR/Installing+a+Plugin).
 
 The default location of the report is `target/japicmp/japicmp.xml`. You can specify a different location (if you have
-configured that in japicmp) through Administration -> General Settings -> Java -> JApiCmp.
+configured that in japicmp) through `Administration -> General Settings -> Java -> JApiCmp`.
 
-To actually see some issues in your code quality report please enable the rules that the plugin creates.
+Per default the plugin assumes that you are using [semantic versioning](http://semver.org/) and only reports an issue
+if your sources are modified in a way that violates the semantic versioning specification. You can turn off this behavior
+under `Administration -> General Settings -> Java -> JApiCmp`.
+
+A complete documentation of all features of japicmp can be found [here](http://siom79.github.io/japicmp/).
+
+To actually see some issues in your code quality report, please enable the rules that the plugin creates.
 
 ## Compatibility
 
