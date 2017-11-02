@@ -9,10 +9,14 @@ import japicmp.xml.JApiCmpXmlRoot.Classes;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.junit.Test;
+
+import javax.xml.bind.JAXBException;
 
 public class JApiCmpXmlParserTest {
 
@@ -27,4 +31,15 @@ public class JApiCmpXmlParserTest {
         assertThat(classes.getClazz(), notNullValue());
         assertThat(classes.getClazz().size(), is(105));
 	}
+
+	@Test(expected = IllegalArgumentException.class)
+    public void testInputStreamThrowsException() {
+        JApiCmpXmlParser parser = new JApiCmpXmlParser();
+        parser.parse(new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new IOException("Test-Exception");
+            }
+        });
+    }
 }
